@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VisualAlgo - Vision AI & Object Grounding</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=9.0">
+</head>
+
+<body class="chatgpt-theme">
+  <div class="chatgpt-layout">
+    <main class="chat-main">
+      <header class="chat-header">
+        <div class="nav-brand-section">
+          <div class="brand-logo-area" id="brandLogoHome" title="VisualAlgo">
+            <div class="brand-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
+                <path d="m4.93 4.93 2.12 2.12m9.9 9.9 2.12 2.12M4.93 19.07l2.12-2.12m9.9-9.9 2.12-2.12"></path>
+              </svg>
+              <div class="brand-icon-pulse"></div>
+            </div>
+            <div class="brand-text-block">
+              <span class="brand-title">Visual<span class="brand-title-accent">Algo</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-actions-section">
+          <button class="nav-cta-btn" id="btnApiKey" type="button" title="Configure Gemini API key">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+            </svg>
+            <span>API Key</span>
+          </button>
+
+          <div class="telemetry-badges">
+            <div class="telemetry-chip gemini-chip" title="Gemini Flash Vision">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="m12 0 2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" />
+              </svg>
+              <span>Gemini Flash</span>
+            </div>
+            <div class="telemetry-chip opencv-chip" title="OpenCV Object Detector">
+              <span class="telemetry-dot"></span>
+              <span>OpenCV</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="chat-viewport" id="chatViewport">
+        <div class="chat-messages" id="chatMessages">
+          <div class="workspace-hero" id="workspaceHero">
+            <div class="hero-glow-orb"></div>
+            <div class="hero-brand-mark" aria-hidden="true">
+              <div class="hero-logo-ring">
+                <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4"></circle>
+                  <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
+                  <path d="m4.93 4.93 2.12 2.12m9.9 9.9 2.12 2.12M4.93 19.07l2.12-2.12m9.9-9.9 2.12-2.12"></path>
+                </svg>
+              </div>
+            </div>
+            <h1 class="hero-headline">Visual<span class="gradient-headline">Algo</span></h1>
+            <p class="hero-subline">Attach a photo, capture live from your camera, and ask a question.</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="chat-bottom-dock">
+        <div class="attachment-preview-bar" id="attachmentPreviewBar" style="display: none;">
+          <div class="attached-img-chip">
+            <img id="attachedThumb" src="" alt="Attachment">
+            <span class="attached-filename" id="attachedFilename">image.jpg</span>
+            <button class="remove-attach-btn" id="btnRemoveAttach" title="Remove image" type="button">&times;</button>
+          </div>
+        </div>
+
+        <div class="prompt-capsule-wrap">
+          <div class="prompt-capsule">
+            <input type="file" id="imageFileInput" accept="image/jpeg,image/png,image/webp,image/bmp" style="display: none;">
+
+            <button class="capsule-icon-btn attach-btn" id="btnAttachImage" type="button" title="Attach image">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+
+            <button class="capsule-icon-btn camera-btn" id="btnCamera" type="button" title="Capture live image">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+            </button>
+
+            <div class="mode-dropdown-wrap">
+              <button class="think-pill" id="btnModeToggle" type="button" title="Click to toggle detection mode">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 16v-4"></path>
+                  <path d="M12 8h.01"></path>
+                </svg>
+                <span id="lblActiveMode">Task-Focused</span>
+              </button>
+            </div>
+
+            <textarea id="promptInput" class="prompt-textarea" rows="1"
+              placeholder="Ask anything about an image..."></textarea>
+
+            <button class="capsule-icon-btn mic-btn" id="btnMic" type="button" title="Voice dictation">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            </button>
+
+            <button class="send-arrow-btn" id="btnSend" type="button" title="Send message">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5"></line>
+                <polyline points="5 12 12 5 19 12"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="drawer-backdrop" id="apiKeyModal" style="display: none;">
+    <div class="drawer-card key-modal-card">
+      <div class="drawer-header">
+        <div>
+          <h3>Gemini API Key</h3>
+          <p>Used for live visual grounding</p>
+        </div>
+        <button class="drawer-close" id="btnCloseApiKey" type="button">&times;</button>
+      </div>
+      <div class="key-modal-body">
+        <input type="password" id="apiKeyInput" class="key-input" placeholder="Paste your Gemini API key" autocomplete="off">
+        <p class="key-hint">Get a free key from Google AI Studio. Saved in this browser, or set <code>GEMINI_API_KEY</code> on the server.</p>
+        <div class="key-modal-actions">
+          <button class="btn-drawer-upload" id="btnSaveApiKey" type="button">Save & Test</button>
+          <button class="think-pill" id="btnClearApiKey" type="button">Clear</button>
+        </div>
+        <p class="key-status" id="apiKeyStatus"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer-backdrop" id="cameraModal" style="display: none;">
+    <div class="drawer-card camera-modal-card">
+      <div class="drawer-header">
+        <div>
+          <h3>Live capture</h3>
+          <p>Allow camera access, then snap a frame</p>
+        </div>
+        <button class="drawer-close" id="btnCloseCamera" type="button">&times;</button>
+      </div>
+      <div class="camera-stage">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <canvas id="cameraCanvas" hidden></canvas>
+        <p class="camera-status" id="cameraStatus">Starting camera...</p>
+      </div>
+      <div class="camera-controls">
+        <button class="think-pill" id="btnFlipCamera" type="button">Flip camera</button>
+        <button class="btn-capture" id="btnSnapCamera" type="button">Capture</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=9.0"></script>
+</body>
+
+</html>

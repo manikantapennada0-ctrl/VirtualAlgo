@@ -1,0 +1,57 @@
+{
+  "question": "which movie",
+  "mode": "task_focused",
+  "answer": "This image is from the 2023 Indian action film *Salaar: Part 1 \u2013 Ceasefire*, directed by Prashanth Neel and starring Prabhas as Deva.",
+  "relevant_visual_info": "The system focuses on the actor Prabhas, his signature silhouette, bloody shirtless appearance, and the distinctive cleaver-like machete/sword held during the coal mine action sequence surrounded by fire. Background smoke, fires, and ambient darkness were treated as secondary contextual details.",
+  "detected_objects": [
+    {
+      "id": 1,
+      "label": "Deva / Prabhas",
+      "confidence": 0.99,
+      "is_relevant": true,
+      "description": "Prabhas portraying the character Deva, covered in blood and standing amidst fire",
+      "box_pixels": {
+        "x": 201,
+        "y": 64,
+        "width": 246,
+        "height": 350
+      },
+      "box_norm": [
+        157.0,
+        274.0,
+        1000,
+        608.0
+      ],
+      "color_hex": "#ff4600",
+      "saved_path": "outputs/1e5e6a02da85cf3330b73f3d0bdb6be6_crop_1.jpg",
+      "crop_url": "/outputs/1e5e6a02da85cf3330b73f3d0bdb6be6_crop_1.jpg?t=1792563316"
+    },
+    {
+      "id": 2,
+      "label": "curved cleaver sword",
+      "confidence": 0.96,
+      "is_relevant": true,
+      "description": "The custom heavy machete-like weapon wielded by Prabhas in the fight sequence",
+      "box_pixels": {
+        "x": 43,
+        "y": 252,
+        "width": 221,
+        "height": 36
+      },
+      "box_norm": [
+        611.0,
+        59.0,
+        697.0,
+        359.0
+      ],
+      "color_hex": "#32cd32",
+      "saved_path": "outputs/1e5e6a02da85cf3330b73f3d0bdb6be6_crop_2.jpg",
+      "crop_url": "/outputs/1e5e6a02da85cf3330b73f3d0bdb6be6_crop_2.jpg?t=1792563316"
+    }
+  ],
+  "image_dims": {
+    "width": 736,
+    "height": 414
+  },
+  "source": "Gemini Multimodal Vision + OpenCV"
+}

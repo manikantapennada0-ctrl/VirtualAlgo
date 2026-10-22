@@ -1,0 +1,33 @@
+{
+  "question": "Detect and highlight the main objects in this image",
+  "mode": "task_focused",
+  "answer": "The main object in the image is a Red Bull Racing Formula 1 car driving along the track.",
+  "relevant_visual_info": "The primary focus is the F1 car centered on the asphalt track, while the racetrack background and borders are ignored.",
+  "detected_objects": [
+    {
+      "id": 1,
+      "label": "Formula 1 racing car",
+      "confidence": 0.99,
+      "is_relevant": true,
+      "description": "A dark blue and red Red Bull Racing Formula 1 car bearing number 3 moving along the racetrack",
+      "box_pixels": {
+        "x": 98,
+        "y": 1254,
+        "width": 4966,
+        "height": 1804
+      },
+      "box_norm": [
+        363.0,
+        19.0,
+        885.0,
+        977.0
+      ],
+      "color_hex": "#ff4600"
+    }
+  ],
+  "image_dims": {
+    "width": 5184,
+    "height": 3456
+  },
+  "source": "Gemini Multimodal Vision + OpenCV"
+}

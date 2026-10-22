@@ -1,0 +1,35 @@
+{
+  "question": "Is the traffic light red?",
+  "mode": "task_focused",
+  "answer": "Yes, the traffic light is red.",
+  "relevant_visual_info": "The system focuses on the prominent traffic light in the foreground, specifically observing that the top red lamp is clearly illuminated, while ignoring irrelevant background elements such as vehicles, pedestrians, and surrounding city buildings.",
+  "detected_objects": [
+    {
+      "id": 1,
+      "label": "traffic light (red)",
+      "confidence": 0.99,
+      "is_relevant": true,
+      "description": "Primary foreground traffic light displaying an illuminated red signal",
+      "box_pixels": {
+        "x": 379,
+        "y": 130,
+        "width": 139,
+        "height": 285
+      },
+      "box_norm": [
+        146.0,
+        316.0,
+        464.0,
+        432.0
+      ],
+      "color_hex": "#ff4600",
+      "saved_path": "outputs/sample_traffic_light_crop_1.jpg",
+      "crop_url": "/outputs/sample_traffic_light_crop_1.jpg?t=1792563152"
+    }
+  ],
+  "image_dims": {
+    "width": 1200,
+    "height": 896
+  },
+  "source": "Gemini Multimodal Vision + OpenCV"
+}
