@@ -159,53 +159,11 @@ Return valid JSON ONLY matching this exact structure:
         });
         responseText = fallbackResponse.text || '';
       } catch (secondErr: any) {
-        console.warn('Gemini API call failed with key, generating intelligent visual grounding:', secondErr?.message || secondErr);
-        // Generate intelligent entity detection with person, face, clothing, and background
-        const isPersonQuery = /person|human|man|woman|face|boy|girl|people|who|selfie|portrait|wearing|head|body|curtain|room|live|detect|what/i.test(finalQuestion);
-
-        if (isPersonQuery) {
-          return res.json({
-            question: finalQuestion,
-            mode: finalMode,
-            answer: 'A person (individual in white t-shirt) is positioned in the central foreground facing the camera in an indoor room setting with background curtains.',
-            relevant_visual_info: 'The system identified and isolated the person, facial region, and clothing attire while filtering out background drapery and interior elements.',
-            objects: [
-              {
-                id: 1,
-                label: 'Person (Foreground Individual)',
-                confidence: 0.97,
-                is_relevant: true,
-                description: 'Person facing the camera in the central foreground.',
-                box_norm: [330, 310, 770, 670],
-              },
-              {
-                id: 2,
-                label: 'Face & Expression',
-                confidence: 0.95,
-                is_relevant: true,
-                description: 'Human facial features and hair profile.',
-                box_norm: [365, 435, 615, 555],
-              },
-              {
-                id: 3,
-                label: 'T-Shirt Attire',
-                confidence: 0.93,
-                is_relevant: true,
-                description: 'White cotton t-shirt garment.',
-                box_norm: [650, 340, 780, 640],
-              },
-              {
-                id: 4,
-                label: 'Background Curtains',
-                confidence: 0.89,
-                is_relevant: false,
-                description: 'Red and patterned interior drapery behind subject.',
-                box_norm: [130, 90, 850, 910],
-              },
-            ],
-            source: 'OpenCV Grounding Engine',
-          });
-        }
+        console.warn('Gemini API call failed with key, delegating to client computer vision:', secondErr?.message || secondErr);
+        return res.json({
+          fallback_to_client: true,
+          message: 'Gemini API call unavailable, using client-side object detection engine',
+        });
       }
     }
 
@@ -257,6 +215,7 @@ Return valid JSON ONLY matching this exact structure:
         is_relevant: obj.is_relevant_to_question !== false,
         description: obj.description || '',
         box_norm: box,
+        box_2d: box,
       };
     });
 

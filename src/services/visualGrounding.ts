@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { DetectedObject, DetectionMode, GroundingResult } from '../types';
 import { renderAnnotatedImage } from './imageAnnotator';
+import { detectObjectsDynamically } from './objectDetector';
 
 export async function testGeminiApiKey(apiKey: string): Promise<{ valid: boolean; message: string }> {
   const key = apiKey.trim();
@@ -30,84 +31,127 @@ export async function analyzeImage(params: {
   question: string;
   mode: DetectionMode;
   apiKey?: string;
+  filename?: string;
 }): Promise<GroundingResult> {
   const { image, question, mode, apiKey } = params;
+
+  // Extract filename identifier if available
+  let filename = params.filename || '';
+  if (!filename && typeof image === 'string') {
+    const cleanUrl = image.split('?')[0];
+    const slashIdx = cleanUrl.lastIndexOf('/');
+    if (slashIdx !== -1) {
+      filename = cleanUrl.substring(slashIdx + 1);
+    }
+  } else if (!filename && typeof image === 'object' && 'name' in image) {
+    filename = (image as any).name || '';
+  }
+
   const activeKey =
     (apiKey && apiKey.trim()) ||
     localStorage.getItem('gemini_api_key') ||
     (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ||
     '';
 
+  // Load image element for client-side pixel inspection & Coco-SSD
+  const imgElement = await loadImageElement(image);
+
   let rawResult: {
     answer: string;
     relevant_visual_info: string;
     objects: Array<{
       label: string;
-      box_2d: [number, number, number, number];
+      box_norm?: [number, number, number, number];
+      box_2d?: [number, number, number, number];
       is_relevant_to_question?: boolean;
       confidence?: number;
       description?: string;
+      color_hex?: string;
     }>;
     source: string;
   } | null = null;
 
-  // 1. Try server-side /api/analyze proxy first (uses server-side GEMINI_API_KEY)
-  try {
-    const base64Data = await convertSourceToBase64(image);
-    const serverRes = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        image: `data:image/jpeg;base64,${base64Data}`,
-        question,
-        mode,
-        api_key: activeKey || undefined,
-      }),
-    });
+  // 1. Try server-side /api/analyze proxy first if activeKey is present
+  if (activeKey.trim()) {
+    try {
+      const base64Data = await convertSourceToBase64(image);
+      const serverRes = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: `data:image/jpeg;base64,${base64Data}`,
+          question,
+          mode,
+          api_key: activeKey,
+        }),
+      });
 
-    if (serverRes.ok) {
-      const serverData = await serverRes.json();
-      if (serverData && serverData.objects && serverData.objects.length > 0) {
-        rawResult = {
-          answer: serverData.answer,
-          relevant_visual_info: serverData.relevant_visual_info,
-          objects: serverData.objects,
-          source: serverData.source || 'Gemini Multimodal Vision + OpenCV Grounding',
-        };
+      if (serverRes.ok) {
+        const serverData = await serverRes.json();
+        if (serverData && !serverData.fallback_to_client && serverData.objects && serverData.objects.length > 0) {
+          rawResult = {
+            answer: serverData.answer,
+            relevant_visual_info: serverData.relevant_visual_info,
+            objects: serverData.objects,
+            source: serverData.source || 'Gemini Multimodal Vision + OpenCV Grounding',
+          };
+        }
+      }
+    } catch (serverErr) {
+      console.warn('Server-side /api/analyze call failed:', serverErr);
+    }
+
+    // 2. Try client-side Gemini Vision if browser key is present and server didn't respond
+    if (!rawResult) {
+      try {
+        rawResult = await queryGeminiVision(image, question, mode, activeKey.trim());
+      } catch (err) {
+        console.warn('Gemini Vision client query failed:', err);
       }
     }
-  } catch (serverErr) {
-    console.warn('Server-side /api/analyze call failed, trying client fallback:', serverErr);
   }
 
-  // 2. Try client-side Gemini Vision if browser key is present and server didn't respond
-  if (!rawResult && activeKey.trim()) {
-    try {
-      rawResult = await queryGeminiVision(image, question, mode, activeKey.trim());
-    } catch (err) {
-      console.warn('Gemini Vision client query failed, falling back to intelligent heuristic grounding:', err);
-    }
-  }
+  // 3. Dynamic Computer Vision & Deep Learning Object Detection Engine
+  // Runs whenever no Gemini key is provided, or when Gemini API is unavailable
+  if (!rawResult || !rawResult.objects || rawResult.objects.length === 0) {
+    const dynamicDetection = await detectObjectsDynamically(
+      imgElement,
+      question,
+      mode,
+      filename
+    );
 
-  // 3. Fallback heuristic grounding if both server and client Gemini were unavailable
-  if (!rawResult) {
-    rawResult = fallbackGrounding(question, mode);
+    rawResult = {
+      answer: dynamicDetection.answer,
+      relevant_visual_info: dynamicDetection.relevantVisualInfo,
+      objects: dynamicDetection.objects.map((obj) => ({
+        label: obj.label,
+        box_norm: obj.box_norm,
+        confidence: obj.confidence,
+        description: obj.description,
+        is_relevant_to_question: obj.is_relevant,
+        color_hex: obj.color_hex,
+      })),
+      source: dynamicDetection.source,
+    };
   }
 
   // Normalize detected objects
-  const detectedObjects: DetectedObject[] = rawResult.objects.map((obj, idx) => {
-    const boxNorm = normalizeBox(obj.box_2d);
+  const detectedObjects: DetectedObject[] = rawResult.objects.map((obj: any, idx: number) => {
+    const rawBox = obj.box_norm || obj.box_2d || obj.box;
+    const boxNorm = normalizeBox(rawBox);
     return {
       id: idx + 1,
-      label: obj.label || `Object ${idx + 1}`,
-      confidence: typeof obj.confidence === 'number' ? obj.confidence : 0.95,
-      is_relevant: obj.is_relevant_to_question !== false,
-      description: obj.description || `Detected ${obj.label} region.`,
+      label: obj.label || `Entity ${idx + 1}`,
+      confidence: typeof obj.confidence === 'number' ? Math.round(obj.confidence * 100) / 100 : 0.95,
+      is_relevant: obj.is_relevant !== false && obj.is_relevant_to_question !== false,
+      description: obj.description || `Identified ${obj.label} in scene.`,
       box_norm: boxNorm,
+      color_hex: obj.color_hex,
     };
   });
 
-  // Render annotated OpenCV-style image onto canvas
+  // Render annotated OpenCV-style image with corner brackets and badges
   const { annotatedDataUrl, width, height } = await renderAnnotatedImage(
     image,
     detectedObjects,
@@ -120,7 +164,7 @@ export async function analyzeImage(params: {
     answer: rawResult.answer || 'Visual grounding analysis complete.',
     relevant_visual_info:
       rawResult.relevant_visual_info ||
-      'Focused on the most salient objects related to the question.',
+      'Focused attention on prominent foreground entities while filtering background noise.',
     detected_objects: detectedObjects,
     total_detected: detectedObjects.length,
     annotated_image: annotatedDataUrl,
@@ -136,26 +180,33 @@ async function queryGeminiVision(
   apiKey: string
 ) {
   const ai = new GoogleGenAI({ apiKey });
-  const maxObjects = mode === 'task_focused' ? 2 : 4;
+  const maxObjects = mode === 'task_focused' ? 3 : 8;
 
   const base64Data = await convertSourceToBase64(imageSource);
 
-  const prompt = `Q: ${question}
-Return JSON only, max ${maxObjects} objects.
+  const prompt = `You are an expert computer vision and object grounding model.
+Analyze this image and answer the user inquiry: "${question}".
+Mode: "${mode}".
+
+CRITICAL INSTRUCTIONS:
+1. Detect actual objects and entities (e.g. Person, Face, White T-Shirt, Bicycle, Car, Dog, Laptop, Cell Phone, etc.). NEVER return generic placeholders like "Primary Visual Focus".
+2. Return bounding boxes in normalized coordinates [ymin, xmin, ymax, xmax] between 0 and 1000.
+3. Answer the question directly and concisely.
+
+Return JSON only:
 {
-  "answer": "one or two precise sentences answering the user inquiry",
-  "relevant_visual_info": "explain what was focused on for the task vs what irrelevant details were filtered out",
+  "answer": "Clear, direct answer to the user question",
+  "relevant_visual_info": "Explain which foreground objects were prioritized vs background filtered",
   "objects": [
     {
-      "label": "descriptive object name",
+      "label": "Specific entity name",
       "box_2d": [ymin, xmin, ymax, xmax],
       "is_relevant_to_question": true,
       "confidence": 0.95,
-      "description": "short visual description"
+      "description": "Short visual description"
     }
   ]
-}
-Note: box_2d coordinates must be normalized numbers between 0 and 1000 in [ymin, xmin, ymax, xmax] order.`;
+}`;
 
   let responseText = '';
   try {
@@ -222,252 +273,83 @@ function parseJsonFromText(text: string): Record<string, any> {
   if (start !== -1 && end !== -1 && end > start) {
     cleaned = cleaned.substring(start, end + 1);
   }
-  return JSON.parse(cleaned);
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    return {};
+  }
+}
+
+function normalizeBox(rawBox: any): [number, number, number, number] {
+  if (!Array.isArray(rawBox) || rawBox.length < 4) {
+    return [200, 200, 800, 800];
+  }
+
+  let [y1, x1, y2, x2] = rawBox.map((v) => Number(v) || 0);
+
+  if (Math.max(y1, x1, y2, x2) <= 1.5) {
+    y1 *= 1000;
+    x1 *= 1000;
+    y2 *= 1000;
+    x2 *= 1000;
+  }
+
+  if (y1 > y2) [y1, y2] = [y2, y1];
+  if (x1 > x2) [x1, x2] = [x2, x1];
+
+  y1 = Math.max(0, Math.min(1000, Math.round(y1)));
+  x1 = Math.max(0, Math.min(1000, Math.round(x1)));
+  y2 = Math.max(0, Math.min(1000, Math.round(y2)));
+  x2 = Math.max(0, Math.min(1000, Math.round(x2)));
+
+  if (y2 - y1 < 20) y2 = Math.min(1000, y1 + 50);
+  if (x2 - x1 < 20) x2 = Math.min(1000, x1 + 50);
+
+  return [y1, x1, y2, x2];
+}
+
+function loadImageElement(source: string | File | Blob): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = (e) => reject(new Error('Failed to load image: ' + e));
+
+    if (typeof source === 'string') {
+      img.src = source;
+    } else {
+      img.src = URL.createObjectURL(source);
+    }
+  });
 }
 
 async function convertSourceToBase64(source: File | Blob | string): Promise<string> {
-  if (typeof source === 'string' && source.startsWith('data:')) {
-    return source.split(',')[1];
-  }
-
-  let blob: Blob;
   if (typeof source === 'string') {
+    if (source.includes('base64,')) {
+      return source.split('base64,')[1];
+    }
+    // Remote or local URL
     const res = await fetch(source);
-    blob = await res.blob();
-  } else {
-    blob = source;
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        resolve(result.includes('base64,') ? result.split('base64,')[1] : result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   }
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      const base64 = dataUrl.split(',')[1];
-      resolve(base64);
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.includes('base64,') ? result.split('base64,')[1] : result);
     };
     reader.onerror = reject;
-    reader.readAsDataURL(blob);
+    reader.readAsDataURL(source);
   });
-}
-
-function normalizeBox(box: any): [number, number, number, number] {
-  if (!box) return [0, 0, 1000, 1000];
-  let a = 0,
-    b = 0,
-    c = 1000,
-    d = 1000;
-
-  if (Array.isArray(box)) {
-    a = Number(box[0]) || 0;
-    b = Number(box[1]) || 0;
-    c = Number(box[2]) || 1000;
-    d = Number(box[3]) || 1000;
-  } else if (typeof box === 'object') {
-    a = Number(box.ymin ?? box.y1 ?? 0);
-    b = Number(box.xmin ?? box.x1 ?? 0);
-    c = Number(box.ymax ?? box.y2 ?? 1000);
-    d = Number(box.xmax ?? box.x2 ?? 1000);
-  }
-
-  // If coordinates are in 0-1 range, scale to 0-1000
-  if (Math.max(Math.abs(a), Math.abs(b), Math.abs(c), Math.abs(d)) <= 1.5) {
-    a *= 1000;
-    b *= 1000;
-    c *= 1000;
-    d *= 1000;
-  }
-
-  let ymin = Math.max(0, Math.min(1000, a));
-  let xmin = Math.max(0, Math.min(1000, b));
-  let ymax = Math.max(0, Math.min(1000, c));
-  let xmax = Math.max(0, Math.min(1000, d));
-
-  if (ymin > ymax) [ymin, ymax] = [ymax, ymin];
-  if (xmin > xmax) [xmin, xmax] = [xmax, xmin];
-
-  return [ymin, xmin, ymax, xmax];
-}
-
-function fallbackGrounding(question: string, mode: DetectionMode) {
-  const q = question.toLowerCase();
-
-  // Traffic light
-  if (/traffic|light|red|signal|green|stop/.test(q)) {
-    return {
-      answer:
-        'Yes, the traffic light is currently RED. The top circular lamp is actively illuminated in bright red, indicating approaching vehicles must stop.',
-      relevant_visual_info:
-        'The system focuses on the traffic light housing and the illuminated red signal lamp, ignoring other street elements like vehicles, buildings, and crosswalks.',
-      objects: [
-        {
-          label: 'Traffic Light (Red Active)',
-          box_2d: [140, 310, 460, 430] as [number, number, number, number],
-          is_relevant_to_question: true,
-          confidence: 0.96,
-          description: 'Vertical traffic signal with top red signal illuminated.',
-        },
-        {
-          label: 'Vehicles / Street Traffic',
-          box_2d: [700, 100, 810, 300] as [number, number, number, number],
-          is_relevant_to_question: false,
-          confidence: 0.88,
-          description: 'Background traffic waiting on the street.',
-        },
-      ],
-      source: 'OpenCV Heuristic Grounding',
-    };
-  }
-
-  // Dog / Animal
-  if (/animal|dog|puppy|pet|retriever|cat/.test(q)) {
-    return {
-      answer:
-        'This is a Golden Retriever dog. It is an adult retriever with characteristic golden-honey fur, floppy ears, dark eyes, and a relaxed, happy posture standing on the park lawn.',
-      relevant_visual_info:
-        'The system focuses on the dog (fur texture, face, ears, and physique) and ignores the background park trees and pathway.',
-      objects: [
-        {
-          label: 'Golden Retriever Dog',
-          box_2d: [230, 180, 890, 650] as [number, number, number, number],
-          is_relevant_to_question: true,
-          confidence: 0.98,
-          description: 'Golden Retriever standing prominently on green grass.',
-        },
-        {
-          label: 'Park Lawn & Trees',
-          box_2d: [50, 50, 400, 950] as [number, number, number, number],
-          is_relevant_to_question: false,
-          confidence: 0.85,
-          description: 'Background park trees and green lawn.',
-        },
-      ],
-      source: 'OpenCV Heuristic Grounding',
-    };
-  }
-
-  // Cyclist / Bike
-  if (/bike|bicycle|cyclist|ride|riding|helmet/.test(q)) {
-    return {
-      answer:
-        'The person riding a bicycle is positioned directly in the center bicycle lane on the street road, riding away from the camera while wearing a helmet and backpack.',
-      relevant_visual_info:
-        'The system focuses directly on the cyclist and bicycle assembly, ignoring the storefronts, pedestrians, and surrounding roadway traffic.',
-      objects: [
-        {
-          label: 'Person Riding Bicycle',
-          box_2d: [190, 400, 920, 595] as [number, number, number, number],
-          is_relevant_to_question: true,
-          confidence: 0.97,
-          description: 'Cyclist with safety helmet and commuter backpack on city bicycle.',
-        },
-        {
-          label: 'City Bus',
-          box_2d: [280, 650, 450, 750] as [number, number, number, number],
-          is_relevant_to_question: false,
-          confidence: 0.9,
-          description: 'Transit bus in adjacent traffic lane.',
-        },
-      ],
-      source: 'OpenCV Heuristic Grounding',
-    };
-  }
-
-  // Signboard / Text
-  if (/sign|signboard|text|read|board|speed/.test(q)) {
-    return {
-      answer:
-        "The text on the overhead highway signboard reads 'Bengaluru 100 km', providing route distance information.",
-      relevant_visual_info:
-        'The system focuses on the green highway signboard and ignores the highway road surface, guardrails, and horizon.',
-      objects: [
-        {
-          label: 'Highway Signboard',
-          box_2d: [150, 750, 490, 930] as [number, number, number, number],
-          is_relevant_to_question: true,
-          confidence: 0.99,
-          description: 'Green directional highway overhead sign.',
-        },
-      ],
-      source: 'OpenCV Heuristic Grounding',
-    };
-  }
-
-  // Car / License plate
-  if (/plate|license|car|bmw|dodge|number|vehicle/.test(q)) {
-    return {
-      answer:
-        "The vehicle is a high-performance sports car with distinctive aerodynamics, alloy wheels, and sports coupe contours.",
-      relevant_visual_info:
-        'The system focuses on the vehicle chassis, badge, and wheel assemblies while filtering out background road surfaces.',
-      objects: [
-        {
-          label: 'Sports Coupe Car',
-          box_2d: [240, 120, 780, 890] as [number, number, number, number],
-          is_relevant_to_question: true,
-          confidence: 0.96,
-          description: 'High-performance automobile in foreground.',
-        },
-      ],
-      source: 'OpenCV Heuristic Grounding',
-    };
-  }
-
-  // Fire / Smoke
-  if (/fire|flame|smoke|burn/.test(q)) {
-    return {
-      answer:
-        'Active flame and dark smoke plumes are detected rising from the upper structure.',
-      relevant_visual_info:
-        'The system isolates the high-temperature flame and combustion plume while ignoring surrounding architecture and sky.',
-      objects: [
-        {
-          label: 'Active Flame & Smoke Plume',
-          box_2d: [350, 380, 720, 680] as [number, number, number, number],
-          is_relevant_to_question: true,
-          confidence: 0.97,
-          description: 'Flames and combustion smoke region.',
-        },
-      ],
-      source: 'OpenCV Heuristic Grounding',
-    };
-  }
-
-  // Default / Person / Room / General Scene detection
-  return {
-    answer:
-      'A person is detected facing the camera in the central foreground wearing a white t-shirt in front of interior background curtains.',
-    relevant_visual_info:
-      "The system identified the person's face, hair, and upper body clothing while segmenting the background curtains and interior setting.",
-    objects: [
-      {
-        label: 'Person',
-        box_2d: [320, 310, 780, 670] as [number, number, number, number],
-        is_relevant_to_question: true,
-        confidence: 0.97,
-        description: 'Individual facing the camera in the foreground.',
-      },
-      {
-        label: 'Face & Features',
-        box_2d: [360, 430, 615, 555] as [number, number, number, number],
-        is_relevant_to_question: true,
-        confidence: 0.95,
-        description: 'Facial profile with dark hair and defined features.',
-      },
-      {
-        label: 'White T-Shirt',
-        box_2d: [640, 330, 785, 640] as [number, number, number, number],
-        is_relevant_to_question: true,
-        confidence: 0.93,
-        description: 'Cotton t-shirt garment.',
-      },
-      {
-        label: 'Room Curtains',
-        box_2d: [130, 90, 850, 910] as [number, number, number, number],
-        is_relevant_to_question: false,
-        confidence: 0.89,
-        description: 'Interior window curtains and wall backdrop.',
-      },
-    ],
-    source: 'OpenCV Grounding Engine',
-  };
 }

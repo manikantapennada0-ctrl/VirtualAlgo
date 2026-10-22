@@ -160,7 +160,13 @@ export const ChatViewport: React.FC<ChatViewportProps> = ({
                         <div className="detected-objects-list">
                           {res.detected_objects.map((obj) => (
                             <div key={obj.id} className="detected-object-chip">
-                              <span className="chip-indicator"></span>
+                              <span
+                                className="chip-indicator"
+                                style={{
+                                  backgroundColor: obj.color_hex || '#00d2ff',
+                                  boxShadow: `0 0 8px ${obj.color_hex || '#00d2ff'}`,
+                                }}
+                              ></span>
                               <strong className="chip-name">{obj.label}</strong>
                               <span className="chip-conf">{Math.round(obj.confidence * 100)}%</span>
                             </div>

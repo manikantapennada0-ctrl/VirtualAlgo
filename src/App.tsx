@@ -11,6 +11,15 @@ import { analyzeImage } from './services/visualGrounding';
 
 const INITIAL_SAMPLES: SamplePreset[] = [
   {
+    id: 'salaar_prabhas',
+    filename: '1e5e6a02da85cf3330b73f3d0bdb6be6.jpg',
+    title: 'Salaar / Prabhas',
+    question: 'Which movie is this and what is the character holding?',
+    image_url: '/samples/1e5e6a02da85cf3330b73f3d0bdb6be6.jpg',
+    icon: '⚔️',
+    description: 'Detect actor Prabhas and the curved cleaver sword',
+  },
+  {
     id: 'traffic_light',
     filename: 'traffic_light.jpg',
     title: 'Traffic Signal',
@@ -75,7 +84,7 @@ interface OutputRecord {
 export const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [prompt, setPrompt] = useState('');
-  const [detectionMode, setDetectionMode] = useState<DetectionMode>('task_focused');
+  const [detectionMode, setDetectionMode] = useState<DetectionMode>('all_objects');
   const [attachedFile, setAttachedFile] = useState<{
     file: File | Blob;
     previewUrl: string;
@@ -296,6 +305,7 @@ export const App: React.FC = () => {
         image: imageSource,
         question: finalQuestion,
         mode: detectionMode,
+        filename: targetFile.name,
       });
 
       setMessages((prev) =>

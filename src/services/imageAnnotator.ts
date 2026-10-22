@@ -30,50 +30,54 @@ export async function renderAnnotatedImage(
   // Draw base image
   ctx.drawImage(img, 0, 0, w, h);
 
-  // Filter objects based on mode
-  let filtered = objects;
-  if (mode === 'task_focused') {
-    const relevantOnly = objects.filter((o) => o.is_relevant);
-    if (relevantOnly.length > 0) {
-      filtered = relevantOnly;
-    }
-  }
+  // Render every detected object so all boxes and labels are prominently visible
+  const allObjects = objects;
 
-  // Draw boxes and corner brackets
-  filtered.forEach((obj, idx) => {
-    const isRelevant = obj.is_relevant;
-    const color = isRelevant
-      ? COLOR_PALETTE[idx % COLOR_PALETTE.length]
-      : COLOR_SECONDARY;
+  allObjects.forEach((obj, idx) => {
+    const isRelevant = obj.is_relevant !== false;
+    const color = obj.color_hex || COLOR_PALETTE[idx % COLOR_PALETTE.length];
+    obj.color_hex = color;
 
-    const [ymin, xmin, ymax, xmax] = obj.box_norm;
+    // Ensure safe box coordinates
+    let norm = Array.isArray(obj.box_norm) && obj.box_norm.length === 4
+      ? obj.box_norm
+      : [200, 200, 800, 800];
+
+    let ymin = Math.min(norm[0], norm[2]);
+    let ymax = Math.max(norm[0], norm[2]);
+    let xmin = Math.min(norm[1], norm[3]);
+    let xmax = Math.max(norm[1], norm[3]);
+
     let x1 = Math.round((xmin / 1000) * w);
     let y1 = Math.round((ymin / 1000) * h);
     let x2 = Math.round((xmax / 1000) * w);
     let y2 = Math.round((ymax / 1000) * h);
 
-    if (x2 <= x1 + 4) x2 = Math.min(w, x1 + 24);
-    if (y2 <= y1 + 4) y2 = Math.min(h, y1 + 24);
+    if (x2 <= x1 + 10) x2 = Math.min(w, x1 + 40);
+    if (y2 <= y1 + 10) y2 = Math.min(h, y1 + 40);
 
     const bw = x2 - x1;
     const bh = y2 - y1;
 
-    const baseThickness = Math.max(2, Math.round(Math.min(w, h) * 0.004));
-    const thickness = isRelevant
-      ? baseThickness
-      : mode === 'hybrid'
-      ? Math.max(1, Math.round(baseThickness * 0.6))
-      : 1;
+    const thickness = Math.max(3, Math.round(Math.min(w, h) * 0.005));
 
-    // 1. Main bounding box
+    // 1. Subtle colored tint over the object area so it stands out
+    ctx.fillStyle = `${color}18`;
+    ctx.fillRect(x1, y1, bw, bh);
+
+    // 2. Main bounding box with glow
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 8;
     ctx.strokeStyle = color;
     ctx.lineWidth = thickness;
     ctx.strokeRect(x1, y1, bw, bh);
+    ctx.restore();
 
-    // 2. Corner bracket accents for high-tech OpenCV look
-    const cornerLen = Math.max(10, Math.round(Math.min(bw, bh) * 0.16));
-    const cornerThickness = thickness + 2;
-    ctx.lineWidth = cornerThickness;
+    // 3. High-tech corner bracket accents
+    const cornerLen = Math.max(14, Math.round(Math.min(bw, bh) * 0.18));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = thickness + 3;
 
     ctx.beginPath();
     // Top-left
@@ -94,30 +98,34 @@ export async function renderAnnotatedImage(
     ctx.lineTo(x2, y2 - cornerLen);
     ctx.stroke();
 
-    // 3. Label Badge
+    // 4. Prominent Label Badge
     const confPct = Math.round(obj.confidence * 100);
     const labelText = obj.confidence > 0 ? `${obj.label} (${confPct}%)` : obj.label;
 
-    const fontSize = Math.max(12, Math.round(Math.min(w, h) * 0.024));
-    ctx.font = `600 ${fontSize}px "Plus Jakarta Sans", -apple-system, sans-serif`;
+    const fontSize = Math.max(13, Math.round(Math.min(w, h) * 0.026));
+    ctx.font = `800 ${fontSize}px "Plus Jakarta Sans", "Space Grotesk", sans-serif`;
 
     const metrics = ctx.measureText(labelText);
     const textW = metrics.width;
     const textH = fontSize;
 
-    const badgePadX = 8;
-    const badgePadY = 5;
+    const badgePadX = 10;
+    const badgePadY = 6;
     const badgeW = textW + badgePadX * 2;
     const badgeH = textH + badgePadY * 2;
 
     const badgeY = y1 - badgeH >= 0 ? y1 - badgeH : y1;
     const badgeX = Math.min(x1, Math.max(0, w - badgeW));
 
-    // Badge background
+    // Badge shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(badgeX + 2, badgeY + 2, badgeW, badgeH);
+
+    // Badge solid background
     ctx.fillStyle = color;
     ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
 
-    // Contrasting text color (black or white)
+    // Contrasting text color
     ctx.fillStyle = getContrastTextColor(color);
     ctx.textBaseline = 'middle';
     ctx.fillText(labelText, badgeX + badgePadX, badgeY + badgeH / 2);
