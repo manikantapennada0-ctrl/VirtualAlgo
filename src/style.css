@@ -577,10 +577,82 @@ body.space-theme, body.chatgpt-theme {
 
 .bot-answer-text {
   font-size: 1.05rem;
-  font-weight: 600;
+  font-weight: 500;
   color: #ffffff;
   margin-bottom: 14px;
   line-height: 1.6;
+}
+
+.answer-badge-label {
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--accent-cyan);
+  background: rgba(0, 210, 255, 0.12);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-right: 8px;
+  display: inline-block;
+}
+
+.bot-detected-objects-box {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--border-cyan);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.detected-objects-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--accent-cyan);
+  margin-bottom: 10px;
+}
+
+.detected-objects-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detected-object-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  background: rgba(0, 210, 255, 0.08);
+  border: 1px solid rgba(0, 210, 255, 0.25);
+  border-radius: 4px;
+  font-size: 0.82rem;
+  color: #ffffff;
+}
+
+.chip-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-saffron);
+  box-shadow: 0 0 8px var(--accent-saffron);
+}
+
+.chip-name {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.chip-conf {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent-cyan);
+  font-weight: 600;
 }
 
 .bot-visual-reasoning-card {
