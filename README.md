@@ -1,8 +1,8 @@
-# VisionQuery AI • OpenCV Object Detection & LLM Visual Grounding
+# VisualAlgo • Vision AI & Object Grounding (React SPA)
 
-An advanced, task-driven Computer Vision & Visual Question Answering (VQA) system built with **OpenCV** and **Multimodal LLMs (Google Gemini Vision)**.
+An advanced, task-driven Computer Vision & Visual Question Answering (VQA) system built with **React**, **TypeScript**, and **Multimodal LLMs (Google Gemini Vision)** with high-precision visual object grounding and highlighting.
 
-This project implements the exact paradigm highlighted in your reference diagram:
+This project implements the core paradigm:
 > **"Identifying the Most Relevant Visual Information from a Given Task"**  
 > *"The system focuses only on the parts of the image that are important for the task, and ignores irrelevant details."*
 
@@ -10,119 +10,54 @@ This project implements the exact paradigm highlighted in your reference diagram
 
 ## 🌟 Key Features
 
-1. **OpenCV Highlighting Engine (Rectangles & Squares)**:
-   - Draws precision bounding boxes around detected entities.
-   - Features modern high-contrast corner brackets, pill-shaped confidence badges, and class-specific color palettes (Lime Green, Bright Crimson, Electric Blue, Amber Gold, Cyber Purple).
-   - Crops high-resolution thumbnails of the focused visual entities for side-by-side comparison.
+1. **Highlighting Engine (Rectangles & Squares)**:
+   - High-contrast precision bounding boxes around detected entities.
+   - High-tech corner bracket accents and pill-shaped confidence badges.
+   - Distinct color palettes (Lime Green, Bright Crimson, Electric Blue, Amber Gold, Cyber Purple, Muted Gray).
+   - Instant 1-click download of the annotated image.
 
 2. **Task-Driven LLM Visual Grounding (Gemini Vision)**:
-   - Directly answers natural language questions about the uploaded image.
+   - Answers natural language questions directly about uploaded or live-captured images.
    - Returns normalized 2D coordinates `[ymin, xmin, ymax, xmax]` (scaled 0–1000) for exact visual grounding.
    - Explains what visual features were focused on and what irrelevant background details were filtered out.
 
 3. **Three Detection Modes**:
-   - 🎯 **Task-Focused**: Highlights *only* the specific objects needed to answer the question (matching the infographic).
+   - 🎯 **Task-Focused**: Highlights *only* the specific objects needed to answer the question.
    - 🔍 **All Objects**: Highlights and categorizes every distinct object present in the scene.
-   - 🌟 **Hybrid**: Highlights all detected entities with secondary outlines while boldly spotlighting the primary target.
+   - 🌟 **Hybrid**: Highlights all detected entities with secondary muted outlines while boldly spotlighting the primary target.
 
-4. **Stunning Web Interface**:
-   - Modern dark-mode UI with glassmorphism (`backdrop-filter`), vibrant glow accents, and responsive layout.
-   - Drag-and-drop image uploader with live preview.
-   - Built-in infographic presets:
-     - 🚦 *Task 1: Is the traffic light red?*
-     - 🚴 *Task 2: Find the person riding a bicycle*
-     - 🐕 *Task 3: What type of animal is this?*
-   - Interactive results viewer with side-by-side tabs, cropped "Relevant Visual Information" cards, and 1-click download of the OpenCV annotated image.
+4. **Multi-Modal Image Input**:
+   - 📁 **File Upload & Drag-and-Drop**: Upload JPEG, PNG, WEBP, or BMP images.
+   - 📷 **Live Camera Capture**: Integrated camera modal with video stream, device camera flipping, and instant frame snapping.
+   - 🎙️ **Voice Dictation**: Web Speech API integration for asking questions using your voice.
+   - 🖼️ **Preset Samples Library**: Instant access to benchmark samples (Traffic Light, Golden Retriever, City Cyclist, BMW M4 GT4, etc.).
 
-5. **Standalone Python CLI Tool**:
-   - Run predictions directly in the terminal without opening a browser.
+5. **Modern ChatGPT-Style Web Interface**:
+   - Radiant, warm light orange & white aesthetic with glassmorphism.
+   - Persistent outputs gallery and sample library drawers.
+   - Offline intelligent heuristic grounding fallback for common vision tasks.
 
 ---
 
-## 🚀 Quick Start
-
-### 1. Start the Interactive Web Application
+## 🚀 Development & Build
 
 ```bash
-# Activate your environment
-.\myenv\Scripts\activate
+# Install dependencies
+npm install
 
-# Start the FastAPI server
-python server.py
-```
+# Start Vite dev server on port 3000
+npm run dev
 
-Then open your browser and navigate to:
-```
-http://127.0.0.1:8000
-```
-
-#### Workflow:
-1. **Drop Images into `samples/`**: Put any input images (`.jpg`, `.png`, `.webp`) into the **[`samples/`](file:///c:/Users/manik/FinalProject/samples)** folder on disk, or click the **"+ Add"** button in the web UI.
-2. **Instant Frontend Display**: The frontend dynamically lists all images in the `samples/` folder. Click any image to preview it.
-3. **Ask & Run**: Enter your question (or use the suggested question) and click **"Run OpenCV Detection & LLM Analysis"**.
-4. **Outputs Stored in `outputs/`**: All output files (OpenCV highlighted images, cropped target snippets, analysis JSON) are automatically stored in the **[`outputs/`](file:///c:/Users/manik/FinalProject/outputs)** directory and displayed live in the web interface.
-
-### 2. Run via Command Line (CLI)
-
-You can process any image and question directly from your terminal:
-
-```bash
-# Example 1: Task 1 - Traffic Light Question
-python detect_and_ask.py --image static/samples/traffic_light.jpg --question "Is the traffic light red?" --output traffic_result.jpg
-
-# Example 2: Task 2 - Find Cyclist with All Objects mode
-python detect_and_ask.py --image static/samples/cyclist.jpg --question "Find the person riding a bicycle" --mode all_objects --output cyclist_result.jpg
-
-# Example 3: Task 3 - Animal Identification
-python detect_and_ask.py --image static/samples/dog.jpg --question "What type of animal is this?" --output dog_result.jpg
+# Build for production
+npm run build
 ```
 
 ---
 
 ## 🔑 Gemini API Key Configuration
 
-The system includes a smart built-in offline heuristic engine for sample tasks. To process **any custom image and custom question** using live Gemini Vision:
+The app includes an offline heuristic engine for common tasks. To process any custom image and custom question using live Gemini Vision:
 
-1. Click the **API Key** button in the top navigation bar of the web interface (or pass `--api-key` in the CLI).
+1. Click the **API Key** button in the top navigation bar.
 2. Enter your free Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
-3. Alternatively, set an environment variable:
-   ```powershell
-   $env:GEMINI_API_KEY="your_api_key_here"
-   ```
-
----
-
-## 📂 Project Structure & Output Directory
-
-All outputs generated by both the web app and CLI are automatically organized and saved in a single dedicated folder: `outputs/`.
-
-```text
-FinalProject/
-├── outputs/                # 📁 Centralized folder for ALL generated outputs
-│   ├── <name>_highlighted.jpg   # Full image with OpenCV rectangle/square boxes & labels
-│   ├── <name>_crop_<id>.jpg     # Cropped high-res visual snippet of detected focus targets
-│   └── <name>_analysis.json     # Full JSON report (question, LLM answer, box coordinates)
-├── detector.py             # Core VisualGroundingEngine (OpenCV rendering + Gemini LLM)
-├── server.py               # FastAPI application backend (serves /outputs as static files)
-├── detect_and_ask.py       # Standalone CLI script
-├── requirements.txt        # Dependency specification
-├── static/
-│   ├── index.html          # Modern Web App interface with Outputs Explorer tab
-│   ├── style.css           # Vanilla CSS design system (Dark glassmorphism)
-│   ├── app.js              # Client-side JavaScript logic
-│   └── samples/            # Photorealistic sample images matching the infographic
-│       ├── traffic_light.jpg
-│       ├── dog.jpg
-│       └── cyclist.jpg
-└── test.py                 # Original darknet reference script
-```
-
----
-
-## 📊 API Endpoints
-
-- `GET /api/health`: Health status and OpenCV version.
-- `GET /api/samples`: List pre-configured demo tasks.
-- `POST /api/analyze_sample`: Run analysis on sample presets (`sample_id`, `question`, `mode`, `api_key`).
-- `POST /api/analyze`: Multipart form upload for custom images (`image`, `question`, `mode`, `api_key`).
-- `POST /api/test_key`: Validate Gemini API key connectivity.
+3. Click **Save & Test** to validate and save it locally in your browser.

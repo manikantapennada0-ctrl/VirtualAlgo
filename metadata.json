@@ -1,0 +1,8 @@
+{
+  "name": "VisualAlgo",
+  "description": "Visual question answering and object grounding system using Gemini Vision and visual highlighting.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
