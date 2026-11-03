@@ -351,8 +351,7 @@ export async function detectObjectsCore(
   body: any,
   apiKey: string
 ): Promise<StandardDetectResponse> {
-  const {
-    imageBase64,
+  const rawImage = body?.imageBase64 || body?.image || body?.imageData || ''; const imageBase64 = typeof rawImage === 'string' ? rawImage : ''; const {
     mimeType = 'image/jpeg',
     mode = 'all',
     sensitivity = 'balanced',
@@ -672,8 +671,7 @@ export async function chatVisualAssistantCore(
   body: any,
   apiKey: string
 ): Promise<StandardChatResponse> {
-  const {
-    imageBase64,
+  const rawImage = body?.imageBase64 || body?.image || body?.imageData || ''; const imageBase64 = typeof rawImage === 'string' ? rawImage : ''; const {
     mimeType = 'image/jpeg',
     question,
     history = [],
