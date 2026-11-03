@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>VISUAL ALGO — AI-Powered Visual Object Detection & Intelligence Platform</title>
+    <meta name="description" content="Universal AI-powered visual object detection, precision coordinate telemetry, and conversational scene intelligence platform." />
+    <meta property="og:title" content="VISUAL ALGO — AI-Powered Visual Object Detection & Intelligence Platform" />
+    <meta property="og:description" content="Universal AI-powered visual object detection, precision coordinate telemetry, and conversational scene intelligence platform." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Google Fonts: Space Grotesk & JetBrains Mono for telemetry + Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              cyber: {
+                950: '#030712',
+                900: '#060c1c',
+                850: '#0a1329',
+                800: '#0f1c3d',
+                700: '#152857',
+              },
+              neon: {
+                cyan: '#00f2fe',
+                blue: '#4facfe',
+                orange: '#ff6a00',
+                coral: '#ee0979',
+                emerald: '#05df9d',
+                purple: '#7928ca',
+                amber: '#ffb300',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              display: ['Space Grotesk', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="/src/index.css" />
+  </head>
+  <body class="bg-black text-slate-100 antialiased overflow-x-hidden selection:bg-cyan-500 selection:text-black">
+    <div id="root" class="relative w-full min-h-screen"></div>
+    <script type="module" src="/src/index.ts"></script>
+  </body>
+</html>

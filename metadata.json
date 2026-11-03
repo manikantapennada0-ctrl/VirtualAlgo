@@ -1,0 +1,11 @@
+{
+  "name": "VISUAL ALGO",
+  "description": "Universal AI-powered visual object detection, precision coordinate telemetry, and conversational scene intelligence platform.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
