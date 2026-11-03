@@ -51,26 +51,50 @@ export default defineConfig(({ mode }) => {
       next();
     });
 
-    // Unified API routing for /api/detect and /api/chat
+    // Unified API routing for /api/detect, /api/analyze, and /api/chat
     middlewares.use(async (req: any, res: any, next: any) => {
       const urlPath = (req.url || '').split('?')[0];
       if (!urlPath.startsWith('/api/')) {
         return next();
       }
 
-      if ((urlPath === '/api/detect' || urlPath === '/api/detect/') && req.method === 'POST') {
+      if (
+        (urlPath === '/api/detect' ||
+          urlPath === '/api/detect/' ||
+          urlPath === '/api/analyze' ||
+          urlPath === '/api/analyze/') &&
+        req.method === 'POST'
+      ) {
         try {
-          const body = await parseRequestBody(req);
-          const apiKey = getEffectiveApiKey(req, body) || serverApiKey;
+          const rawBody = await parseRequestBody(req);
+          const apiKey = getEffectiveApiKey(req, rawBody) || serverApiKey;
+
+          const normalizedBody = {
+            imageBase64: rawBody?.imageBase64 || rawBody?.image || '',
+            mimeType: rawBody?.mimeType || 'image/jpeg',
+            mode: rawBody?.mode === 'all_objects' ? 'all' : rawBody?.mode || 'all',
+            sensitivity: rawBody?.sensitivity || 'balanced',
+            customPrompt: rawBody?.customPrompt || rawBody?.question || '',
+            apiKey,
+          };
 
           console.log(
-            `[Vite Dev /api/detect] Request | Mode: ${body?.mode || 'all'} | Key: ${maskApiKey(apiKey)}`
+            `[Vite Dev ${urlPath}] Request | Mode: ${normalizedBody.mode} | Key: ${maskApiKey(apiKey)}`
           );
 
-          const result = await detectObjectsCore(body, apiKey);
-          return sendJsonResponse(res, 200, result);
+          const result = await detectObjectsCore(normalizedBody, apiKey);
+          const enriched = {
+            ...result,
+            answer: result.scene_summary || result.description,
+            inference_time_ms: result.processing_time_ms,
+            relevant_visual_info: (result.objects || [])
+              .map((o: any, i: number) => `#${i + 1} ${o.label} [${o.category}] — ${Math.round(o.confidence * 100)}%`)
+              .join(' | '),
+          };
+
+          return sendJsonResponse(res, 200, enriched);
         } catch (error: any) {
-          console.error('[Vite Dev /api/detect] Error:', error.message || error);
+          console.error(`[Vite Dev ${urlPath}] Error:`, error.message || error);
           return sendJsonResponse(res, 500, {
             success: false,
             error: {

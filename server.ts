@@ -67,20 +67,38 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  // API Route: Detect
-  if (pathname === '/api/detect' && req.method === 'POST') {
+  // API Route: Detect & Analyze
+  if ((pathname === '/api/detect' || pathname === '/api/analyze') && req.method === 'POST') {
     try {
-      const body = await parseRequestBody(req);
-      const apiKey = getEffectiveApiKey(req, body);
+      const rawBody = await parseRequestBody(req);
+      const apiKey = getEffectiveApiKey(req, rawBody);
+
+      const normalizedBody = {
+        imageBase64: rawBody?.imageBase64 || rawBody?.image || '',
+        mimeType: rawBody?.mimeType || 'image/jpeg',
+        mode: rawBody?.mode === 'all_objects' ? 'all' : rawBody?.mode || 'all',
+        sensitivity: rawBody?.sensitivity || 'balanced',
+        customPrompt: rawBody?.customPrompt || rawBody?.question || '',
+        apiKey,
+      };
 
       console.log(
-        `[HTTP /api/detect] Processing request | Mode: ${body?.mode || 'all'} | Key: ${maskApiKey(apiKey)}`
+        `[HTTP ${pathname}] Processing request | Mode: ${normalizedBody.mode} | Key: ${maskApiKey(apiKey)}`
       );
 
-      const result = await detectObjectsCore(body, apiKey);
-      return sendJsonResponse(res, 200, result);
+      const result = await detectObjectsCore(normalizedBody, apiKey);
+      const enriched = {
+        ...result,
+        answer: result.scene_summary || result.description,
+        inference_time_ms: result.processing_time_ms,
+        relevant_visual_info: (result.objects || [])
+          .map((o: any, i: number) => `#${i + 1} ${o.label} [${o.category}] — ${Math.round(o.confidence * 100)}%`)
+          .join(' | '),
+      };
+
+      return sendJsonResponse(res, 200, enriched);
     } catch (error: any) {
-      console.error('[HTTP /api/detect] Error:', error.message || error);
+      console.error(`[HTTP ${pathname}] Error:`, error.message || error);
       return sendJsonResponse(res, 500, {
         success: false,
         error: {
