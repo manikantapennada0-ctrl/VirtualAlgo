@@ -3,6 +3,7 @@ import { Icons } from '../utils/icons';
 export class Header {
   private container: HTMLElement;
   private statusText: string = 'SYSTEM READY';
+  private activeModel: string = 'gemini-2.5-flash';
   private isAnalyzing: boolean = false;
   private isSpatialMode: boolean = false;
   private currentView: 'image' | 'video' = 'image';
@@ -21,6 +22,13 @@ export class Header {
     this.statusText = text;
     this.isAnalyzing = isAnalyzing;
     this.render();
+  }
+
+  public setModel(model: string) {
+    if (model) {
+      this.activeModel = model;
+      this.render();
+    }
   }
 
   public setSpatialMode(active: boolean) {
@@ -87,7 +95,7 @@ export class Header {
               <span class="w-2 h-2 rounded-full ${this.isAnalyzing ? 'bg-orange-400 animate-ping' : 'bg-emerald-400 glow-cyan'}"></span>
               <span class="text-slate-300">${this.statusText}</span>
               <span class="text-slate-600">|</span>
-              <span class="text-cyan-400 font-bold">gemini-3.1-flash</span>
+              <span class="text-cyan-400 font-bold">${this.activeModel}</span>
             </div>
 
             <!-- Spatial 3D / XR Mode Toggle -->

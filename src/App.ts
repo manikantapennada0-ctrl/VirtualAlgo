@@ -71,6 +71,9 @@ export class App {
 
     // Verify backend health
     const health = await ApiService.checkHealth();
+    if (health.model) {
+      this.header.setModel(health.model);
+    }
     if (!health.hasApiKey) {
       this.header.setStatus('KEY NOT CONFIGURED', false);
     } else {
@@ -280,6 +283,14 @@ export class App {
       }
     };
 
+    this.settingsModal.onApiKeyChange = (hasKey) => {
+      this.header.setStatus(hasKey ? 'CUSTOM KEY ACTIVE' : 'SYSTEM READY', false);
+      this.showToast(hasKey ? 'Custom Gemini API Key active!' : 'Custom API Key removed.', 'info');
+      if (this.currentImageBase64) {
+        this.runDetection();
+      }
+    };
+
     this.spatialViewer.onClose = () => {
       this.isSpatialModeActive = false;
       this.header.setSpatialMode(false);
@@ -385,14 +396,45 @@ export class App {
   }
 
   private loadBase64Image(base64: string, name: string, triggerDetect: boolean = true) {
-    this.currentImageBase64 = base64;
-    this.currentImageUrl = base64;
     this.currentImageName = name;
 
     const img = new Image();
     img.onload = () => {
       this.currentImageWidth = img.naturalWidth;
       this.currentImageHeight = img.naturalHeight;
+
+      // Optimize image resolution for network transfer if necessary (Vercel 4.5MB limit)
+      let optimizedBase64 = base64;
+      const MAX_DIM = 1800;
+      if (img.naturalWidth > MAX_DIM || img.naturalHeight > MAX_DIM || base64.length > 2.5 * 1024 * 1024) {
+        try {
+          const canvas = document.createElement('canvas');
+          let w = img.naturalWidth;
+          let h = img.naturalHeight;
+          if (w > h && w > MAX_DIM) {
+            h = Math.round((h * MAX_DIM) / w);
+            w = MAX_DIM;
+          } else if (h > MAX_DIM) {
+            w = Math.round((w * MAX_DIM) / h);
+            h = MAX_DIM;
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, w, h);
+            optimizedBase64 = canvas.toDataURL('image/jpeg', 0.88);
+          }
+        } catch (e) {
+          console.warn('Canvas optimization skipped:', e);
+        }
+      }
+
+      this.currentImageBase64 = optimizedBase64;
+      this.currentImageUrl = base64; // preserve original for workspace display
+
       this.hero.render(true);
       this.workspace.render(base64);
 
@@ -401,7 +443,7 @@ export class App {
       } else {
         this.detections = [];
         this.sidebar.setData([], 0, '');
-        this.chat.setContext(base64, [], '');
+        this.chat.setContext(optimizedBase64, [], '');
       }
     };
     img.src = base64;
@@ -422,6 +464,10 @@ export class App {
         this.sensitivity,
         this.customPrompt
       );
+
+      if (result.model_used) {
+        this.header.setModel(result.model_used);
+      }
 
       // Color code and enrich detections
       const enrichedDetections: DetectedObject[] = result.detections.map((d, index) => ({
@@ -448,7 +494,7 @@ export class App {
       if (result.isQuotaFallback) {
         this.header.setStatus(`GROUNDED: ${this.detections.length} OBJECTS (ADAPTIVE)`, false);
         this.showToast(
-          `Localized ${this.detections.length} objects. (Free-tier Gemini daily quota reached; adaptive offline telemetry engaged).`,
+          `Localized ${this.detections.length} objects. (Adaptive offline grounding mode).`,
           'info'
         );
       } else {
